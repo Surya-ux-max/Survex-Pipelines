@@ -278,8 +278,15 @@ const Lightfall = ({
       canvas.addEventListener('pointermove', onPointerMove);
     }
 
+    let isVisible = false;
+
     const loop = t => {
+      if (!isVisible) {
+        rafRef.current = null;
+        return;
+      }
       rafRef.current = requestAnimationFrame(loop);
+
       uniforms.iTime.value = t * 0.001;
       if (mouseDampening > 0) {
         if (!lastTimeRef.current) lastTimeRef.current = t;
@@ -303,12 +310,33 @@ const Lightfall = ({
         }
       }
     };
-    rafRef.current = requestAnimationFrame(loop);
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const wasVisible = isVisible;
+          isVisible = entry.isIntersecting;
+          if (isVisible && !wasVisible) {
+            if (!rafRef.current) {
+              rafRef.current = requestAnimationFrame(loop);
+            }
+          } else if (!isVisible && wasVisible) {
+            if (rafRef.current) {
+              cancelAnimationFrame(rafRef.current);
+              rafRef.current = null;
+            }
+          }
+        });
+      },
+      { threshold: 0.02 }
+    );
+    io.observe(container);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (mouseInteraction) canvas.removeEventListener('pointermove', onPointerMove);
       ro.disconnect();
+      io.disconnect();
       if (canvas.parentElement === container) {
         container.removeChild(canvas);
       }

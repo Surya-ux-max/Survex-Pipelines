@@ -28,11 +28,22 @@ function GraphLoop() {
             <stop offset="0%" stopColor="#FFC801" />
             <stop offset="100%" stopColor="#42fcff" />
           </linearGradient>
-          {/* Glow filter */}
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
+          {/* Performance-optimized packet glows */}
+          <radialGradient id="yellowGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FFC801" stopOpacity="1" />
+            <stop offset="30%" stopColor="#FFC801" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#FFC801" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#42fcff" stopOpacity="1" />
+            <stop offset="30%" stopColor="#42fcff" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#42fcff" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="orangeGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FF9932" stopOpacity="1" />
+            <stop offset="30%" stopColor="#FF9932" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#FF9932" stopOpacity="0" />
+          </radialGradient>
         </defs>
 
         {/* Circular main track loop */}
@@ -43,13 +54,13 @@ function GraphLoop() {
         <path id="loop-path" d="M 200 80 A 120 120 0 1 1 199.9 80" fill="none" stroke="transparent" />
 
         {/* Glowing flow packets (circles moving along path) */}
-        <circle r="5" fill="#FFC801" filter="url(#glow)">
+        <circle r="12" fill="url(#yellowGlow)">
           <animateMotion dur="7s" repeatCount="indefinite" path="M 200 80 A 120 120 0 1 1 199.9 80" />
         </circle>
-        <circle r="4" fill="#42fcff" filter="url(#glow)">
+        <circle r="10" fill="url(#cyanGlow)">
           <animateMotion dur="7s" begin="2.3s" repeatCount="indefinite" path="M 200 80 A 120 120 0 1 1 199.9 80" />
         </circle>
-        <circle r="4.5" fill="#FF9932" filter="url(#glow)">
+        <circle r="11" fill="url(#orangeGlow)">
           <animateMotion dur="7s" begin="4.6s" repeatCount="indefinite" path="M 200 80 A 120 120 0 1 1 199.9 80" />
         </circle>
 

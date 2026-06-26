@@ -1233,6 +1233,7 @@ h1, h2, h3, h4, h5, h6 {
 .reveal.revealed {
   opacity: 1;
   transform: translate(0) scale(1);
+  will-change: auto; /* Reclaim GPU layer memory after transition completes */
 }
 
 /* Staggered delay helpers */

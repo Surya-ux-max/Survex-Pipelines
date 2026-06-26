@@ -170,18 +170,9 @@ export default function PipelineScene() {
     mediaQuery.addEventListener('change', handleMotionChange);
 
     let animationFrameId = null;
-    let isVisible = true;
+    let isVisible = false;
     let clock = new THREE.Clock();
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          isVisible = entry.isIntersecting;
-        });
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(container);
+    clock.stop();
 
     const animate = () => {
       if (prefersReducedMotion) {
@@ -189,39 +180,58 @@ export default function PipelineScene() {
         return;
       }
 
-      if (isVisible) {
-        const elapsedTime = clock.getElapsedTime();
+      const elapsedTime = clock.getElapsedTime();
 
-        // 1. Update uniforms (this ticks the waves on the GPU)
-        uniforms.time.value = elapsedTime;
+      // 1. Update uniforms (this ticks the waves on the GPU)
+      uniforms.time.value = elapsedTime;
 
-        // 2. Camera parallax
-        mouse.x += (mouse.targetX - mouse.x) * 0.04;
-        mouse.y += (mouse.targetY - mouse.y) * 0.04;
-        scroll.y += (scroll.targetY - scroll.y) * 0.06;
+      // 2. Camera parallax
+      mouse.x += (mouse.targetX - mouse.x) * 0.04;
+      mouse.y += (mouse.targetY - mouse.y) * 0.04;
+      scroll.y += (scroll.targetY - scroll.y) * 0.06;
 
-        camera.position.x = mouse.x * 2;
-        camera.position.y = 5 - (scroll.y * 3) + (mouse.y * 1);
-        camera.position.z = 12 - (scroll.y * 4);
-        camera.lookAt(0, -1 - (scroll.y * 2), -2);
+      camera.position.x = mouse.x * 2;
+      camera.position.y = 5 - (scroll.y * 3) + (mouse.y * 1);
+      camera.position.z = 12 - (scroll.y * 4);
+      camera.lookAt(0, -1 - (scroll.y * 2), -2);
 
-        // 3. Hubs bobbing
-        hubs.forEach((h, index) => {
-          h.mesh.rotation.y += h.rotSpeed;
-          h.mesh.rotation.x += h.rotSpeed * 0.5;
-          const bob = Math.sin(elapsedTime * 0.8 + index * Math.PI) * 0.2;
-          h.mesh.position.y = h.basePos.y + bob;
-        });
+      // 3. Hubs bobbing
+      hubs.forEach((h, index) => {
+        h.mesh.rotation.y += h.rotSpeed;
+        h.mesh.rotation.x += h.rotSpeed * 0.5;
+        const bob = Math.sin(elapsedTime * 0.8 + index * Math.PI) * 0.2;
+        h.mesh.position.y = h.basePos.y + bob;
+      });
 
-        nodePoints.rotation.y = elapsedTime * 0.01;
+      nodePoints.rotation.y = elapsedTime * 0.01;
 
-        renderer.render(scene, camera);
-      }
+      renderer.render(scene, camera);
 
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    animate();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const wasVisible = isVisible;
+          isVisible = entry.isIntersecting;
+          if (isVisible && !wasVisible) {
+            if (!animationFrameId) {
+              clock.start();
+              animationFrameId = requestAnimationFrame(animate);
+            }
+          } else if (!isVisible && wasVisible) {
+            if (animationFrameId) {
+              cancelAnimationFrame(animationFrameId);
+              animationFrameId = null;
+              clock.stop();
+            }
+          }
+        });
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
 
     const handleResize = () => {
       if (!container) return;
