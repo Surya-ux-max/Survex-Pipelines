@@ -28,7 +28,7 @@ export default function PipelineScene() {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // Renderer: alpha: true for transparent canvas (shows Arctic Powder background)
+    // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
@@ -37,173 +37,107 @@ export default function PipelineScene() {
     // Scene
     const scene = new THREE.Scene();
 
-    // Camera
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0, 15);
+    // Camera: Tilted downward to view the terrain waves
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(0, 5, 12);
+    camera.lookAt(0, 0, 0);
 
-    // Mouse positioning for interactive parallax
+    // Mouse vectors for parallax
     const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+    const scroll = { y: 0, targetY: 0 };
 
     const handleMouseMove = (e) => {
-      // Normalize mouse coordinates to [-1, 1]
       mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
       mouse.targetY = -(e.clientY / window.innerHeight) * 2 + 1;
     };
-    window.addEventListener('pointermove', handleMouseMove);
 
-    // 1. Group to contain all floating objects
-    const floatGroup = new THREE.Group();
-    scene.add(floatGroup);
-
-    // 2. Color definitions matching locked palette
-    const colorOceanic = new THREE.Color(0x172b36); // Oceanic Noir
-    const colorForsythia = new THREE.Color(0xffc801); // Forsythia
-    const colorSaffron = new THREE.Color(0xff9932); // Deep Saffron
-    const colorMint = new THREE.Color(0xd9e8e2); // Mystic Mint
-
-    // Helper to create wireframe geometry + line segments for clean technical wireframes
-    const createWireframeMesh = (geometry, color, opacity = 0.25) => {
-      // Wireframe material
-      const wireframeMat = new THREE.MeshBasicMaterial({
-        color: color,
-        wireframe: true,
-        transparent: true,
-        opacity: opacity,
-        depthWrite: false
-      });
-      const mesh = new THREE.Mesh(geometry, wireframeMat);
-
-      // Add small glowing vertices (points)
-      const pointsMat = new THREE.PointsMaterial({
-        color: color,
-        size: 0.1,
-        transparent: true,
-        opacity: opacity * 2,
-        sizeAttenuation: true
-      });
-      const points = new THREE.Points(geometry, pointsMat);
-      mesh.add(points);
-
-      return mesh;
+    const handleScroll = () => {
+      // Normalize scroll position
+      scroll.targetY = window.scrollY / window.innerHeight;
     };
 
-    // 3. Define individual floating objects with positions and rotation factors
-    const items = [];
+    window.addEventListener('pointermove', handleMouseMove);
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
-    // Item 1: Large Central Torus Knot (placed on the right side)
-    const torusKnotGeom = new THREE.TorusKnotGeometry(1.6, 0.4, 64, 8, 2, 3);
-    const mainTorus = createWireframeMesh(torusKnotGeom, colorOceanic, 0.2);
-    // Position primarily on the right for desktop, centered on mobile
-    mainTorus.position.set(4, 0, 0);
-    floatGroup.add(mainTorus);
-    items.push({
-      mesh: mainTorus,
-      basePos: new THREE.Vector3(4, 0, 0),
-      rotSpeed: new THREE.Vector3(0.002, 0.003, 0.001),
-      bobSpeed: 0.001,
-      bobHeight: 0.5,
-      phase: 0
+    // 1. Color Palette Definitions
+    const colorOceanic = new THREE.Color(0x172b36); // Oceanic Noir
+    const colorForsythia = new THREE.Color(0xffc801); // Forsythia
+    const colorMint = new THREE.Color(0xd9e8e2); // Mystic Mint
+
+    // 2. Volumetric 3D Data Terrain (Heightmap Plane)
+    // Using high segment count to make smooth waves
+    const cols = 55;
+    const rows = 55;
+    const size = 20;
+    const terrainGeometry = new THREE.PlaneGeometry(size, size, cols, rows);
+    // Rotate plane to lie flat on the floor
+    terrainGeometry.rotateX(-Math.PI / 2);
+
+    // Keep copies of base positions to calculate sine wave offsets dynamically
+    const basePositions = terrainGeometry.attributes.position.clone();
+
+    // Terrain material: Wireframe showing the structural grid mesh
+    const terrainMaterial = new THREE.MeshBasicMaterial({
+      color: colorOceanic,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false
     });
 
-    // Item 2: Floating Icosahedron A (Mystic Mint, top right)
-    const icosaGeom = new THREE.IcosahedronGeometry(1.0, 0);
-    const icoA = createWireframeMesh(icosaGeom, colorMint, 0.4);
-    icoA.position.set(2, 3.5, -2);
-    floatGroup.add(icoA);
-    items.push({
-      mesh: icoA,
-      basePos: new THREE.Vector3(2, 3.5, -2),
-      rotSpeed: new THREE.Vector3(-0.004, 0.002, 0.003),
-      bobSpeed: 0.0015,
-      bobHeight: 0.3,
-      phase: Math.PI / 4
-    });
+    const terrainMesh = new THREE.Mesh(terrainGeometry, terrainMaterial);
+    // Push the terrain slightly down and back
+    terrainMesh.position.set(0, -2, -2);
+    scene.add(terrainMesh);
 
-    // Item 3: Floating Icosahedron B (Oceanic Noir, bottom left)
-    const icoB = createWireframeMesh(icosaGeom, colorOceanic, 0.15);
-    icoB.position.set(-5, -2.5, -1);
-    floatGroup.add(icoB);
-    items.push({
-      mesh: icoB,
-      basePos: new THREE.Vector3(-5, -2.5, -1),
-      rotSpeed: new THREE.Vector3(0.003, -0.003, 0.002),
-      bobSpeed: 0.0009,
-      bobHeight: 0.4,
-      phase: Math.PI / 2
-    });
+    // 3. Floating Data Node Matrix (ambient coordinate nodes)
+    const nodeCount = 150;
+    const nodeGeometry = new THREE.BufferGeometry();
+    const nodePositions = new Float32Array(nodeCount * 3);
 
-    // Item 4: Glowing Forsythia Tetrahedron (active data node, middle left)
-    const tetraGeom = new THREE.TetrahedronGeometry(0.7, 0);
-    const tetra = createWireframeMesh(tetraGeom, colorForsythia, 0.65);
-    tetra.position.set(-3.5, 1.8, 1);
-    floatGroup.add(tetra);
-    items.push({
-      mesh: tetra,
-      basePos: new THREE.Vector3(-3.5, 1.8, 1),
-      rotSpeed: new THREE.Vector3(0.006, 0.008, 0.004),
-      bobSpeed: 0.002,
-      bobHeight: 0.25,
-      phase: Math.PI * 0.75
-    });
-
-    // Item 5: Deep Saffron Octahedron (validation node, bottom right)
-    const octaGeom = new THREE.OctahedronGeometry(0.8, 0);
-    const octa = createWireframeMesh(octaGeom, colorSaffron, 0.55);
-    octa.position.set(5.5, -3, 2);
-    floatGroup.add(octa);
-    items.push({
-      mesh: octa,
-      basePos: new THREE.Vector3(5.5, -3, 2),
-      rotSpeed: new THREE.Vector3(-0.005, -0.004, 0.006),
-      bobSpeed: 0.0018,
-      bobHeight: 0.35,
-      phase: Math.PI
-    });
-
-    // Item 6: Thin Ring / Conduit (Forsythia, wrapping large torus)
-    const ringGeom = new THREE.TorusGeometry(2.8, 0.04, 8, 32);
-    const orbitRing = createWireframeMesh(ringGeom, colorForsythia, 0.3);
-    orbitRing.position.set(4, 0, 0);
-    orbitRing.rotation.x = Math.PI / 3;
-    floatGroup.add(orbitRing);
-    items.push({
-      mesh: orbitRing,
-      basePos: new THREE.Vector3(4, 0, 0),
-      rotSpeed: new THREE.Vector3(0.001, -0.002, 0.005),
-      bobSpeed: 0.001,
-      bobHeight: 0.5,
-      phase: 0
-    });
-
-    // 4. Subtle Background Grid dots
-    const gridCount = 200;
-    const gridGeometry = new THREE.BufferGeometry();
-    const gridPositions = new Float32Array(gridCount * 3);
-
-    for (let i = 0; i < gridCount; i++) {
-      gridPositions[i * 3] = (Math.random() - 0.5) * 35;
-      gridPositions[i * 3 + 1] = (Math.random() - 0.5) * 20;
-      gridPositions[i * 3 + 2] = (Math.random() - 0.5) * 15 - 8;
+    for (let i = 0; i < nodeCount; i++) {
+      nodePositions[i * 3] = (Math.random() - 0.5) * 24;
+      nodePositions[i * 3 + 1] = (Math.random() - 0.5) * 8 + 2;
+      nodePositions[i * 3 + 2] = (Math.random() - 0.5) * 16 - 4;
     }
 
-    gridGeometry.setAttribute('position', new THREE.BufferAttribute(gridPositions, 3));
-    const gridMaterial = new THREE.PointsMaterial({
-      color: 0x172b36,
-      size: 0.04,
+    nodeGeometry.setAttribute('position', new THREE.BufferAttribute(nodePositions, 3));
+    const nodeMaterial = new THREE.PointsMaterial({
+      color: 0xffc801, // Forsythia
+      size: 0.055,
       transparent: true,
-      opacity: 0.12,
+      opacity: 0.45,
       sizeAttenuation: true
     });
-    const gridNodes = new THREE.Points(gridGeometry, gridMaterial);
-    scene.add(gridNodes);
+    const nodePoints = new THREE.Points(nodeGeometry, nodeMaterial);
+    scene.add(nodePoints);
 
-    // 5. Lighting: Soft ambient fill
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambientLight);
+    // 4. Large wireframe waypoint hubs floating in the landscape
+    const hubGeom = new THREE.IcosahedronGeometry(0.8, 1);
+    const hubMat = new THREE.MeshBasicMaterial({
+      color: colorForsythia,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.28
+    });
+    
+    // We add 3 floating hubs across the scene
+    const hubs = [
+      { mesh: new THREE.Mesh(hubGeom, hubMat), basePos: new THREE.Vector3(-4, 1.5, -2), rotSpeed: 0.005 },
+      { mesh: new THREE.Mesh(hubGeom, hubMat), basePos: new THREE.Vector3(4.5, 0.8, 1), rotSpeed: -0.004 },
+      { mesh: new THREE.Mesh(hubGeom, hubMat), basePos: new THREE.Vector3(1, 2.5, -5), rotSpeed: 0.003 }
+    ];
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    dirLight.position.set(5, 5, 5);
-    scene.add(dirLight);
+    hubs.forEach(h => {
+      h.mesh.position.copy(h.basePos);
+      // Add a tiny solid center to the hubs
+      const centerGeom = new THREE.IcosahedronGeometry(0.12, 0);
+      const centerMat = new THREE.MeshBasicMaterial({ color: 0xff9932 }); // Deep Saffron
+      const center = new THREE.Mesh(centerGeom, centerMat);
+      h.mesh.add(center);
+
+      scene.add(h.mesh);
+    });
 
     // Media query to check for prefers-reduced-motion
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -220,9 +154,8 @@ export default function PipelineScene() {
     // Animation variables
     let animationFrameId = null;
     let isVisible = true;
-    let time = 0;
+    let clock = new THREE.Clock();
 
-    // IntersectionObserver to pause loop when off-screen
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -241,32 +174,48 @@ export default function PipelineScene() {
       }
 
       if (isVisible) {
-        time += 1;
+        const elapsedTime = clock.getElapsedTime();
 
-        // Smooth mouse position lerping for parallax camera tilt
-        mouse.x += (mouse.targetX - mouse.x) * 0.05;
-        mouse.y += (mouse.targetY - mouse.y) * 0.05;
+        // 1. Lerp mouse coordinates & scroll offsets for fluid scroll-driven camera parallax
+        mouse.x += (mouse.targetX - mouse.x) * 0.04;
+        mouse.y += (mouse.targetY - mouse.y) * 0.04;
+        scroll.y += (scroll.targetY - scroll.y) * 0.06;
 
-        // Apply mouse position to camera tilt
-        camera.position.x = mouse.x * 2.5;
-        camera.position.y = mouse.y * 2.5;
-        camera.lookAt(0, 0, 0);
+        // Dynamic camera tracking: Camera shifts downward and rolls slightly as page scrolls down
+        camera.position.x = mouse.x * 2;
+        camera.position.y = 5 - (scroll.y * 3) + (mouse.y * 1);
+        camera.position.z = 12 - (scroll.y * 4); // Fly into the coordinate space on scroll
+        camera.lookAt(0, -1 - (scroll.y * 2), -2);
 
-        // Slow background grid drift
-        gridNodes.rotation.y = time * 0.00015;
-        gridNodes.rotation.x = time * 0.0001;
+        // 2. Animate 3D Terrain Plane procedural data waves
+        const posAttr = terrainGeometry.attributes.position;
+        const count = posAttr.count;
 
-        // Update items (bobbing & rotation)
-        items.forEach((item) => {
-          // Self rotation
-          item.mesh.rotation.x += item.rotSpeed.x;
-          item.mesh.rotation.y += item.rotSpeed.y;
-          item.mesh.rotation.z += item.rotSpeed.z;
+        for (let i = 0; i < count; i++) {
+          const x = basePositions.getX(i);
+          const z = basePositions.getZ(i);
 
-          // Bobbing along Y axis
-          const yOffset = Math.sin(time * item.bobSpeed + item.phase) * item.bobHeight;
-          item.mesh.position.y = item.basePos.y + yOffset;
+          // Construct overlapping sine waves to model a realistic ocean of data pipeline waves
+          const wave1 = Math.sin(x * 0.4 + elapsedTime * 1.2) * Math.cos(z * 0.4 + elapsedTime * 0.8) * 0.75;
+          const wave2 = Math.sin(x * 0.8 - elapsedTime * 0.9) * 0.25;
+          const wave3 = Math.sin(z * 0.25 + elapsedTime * 0.5) * 0.4;
+          
+          posAttr.setY(i, wave1 + wave2 + wave3);
+        }
+        posAttr.needsUpdate = true;
+
+        // 3. Rotate and float waypoint hubs
+        hubs.forEach((h, index) => {
+          h.mesh.rotation.y += h.rotSpeed;
+          h.mesh.rotation.x += h.rotSpeed * 0.5;
+
+          // Bobbing wave displacement
+          const bob = Math.sin(elapsedTime * 0.8 + index * Math.PI) * 0.2;
+          h.mesh.position.y = h.basePos.y + bob;
         });
+
+        // 4. Slow drift on grid nodes
+        nodePoints.rotation.y = elapsedTime * 0.015;
 
         renderer.render(scene, camera);
       }
@@ -274,10 +223,9 @@ export default function PipelineScene() {
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    // Start loop
     animate();
 
-    // Adjust layouts on resize to keep objects visually framed
+    // Resize Handler
     const handleResize = () => {
       if (!container) return;
       const w = container.clientWidth;
@@ -285,32 +233,18 @@ export default function PipelineScene() {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
-
-      // Adjust positions based on screen width (desktop vs mobile layout)
+      
       const isMobile = w < 768;
-      items.forEach((item) => {
-        if (item.mesh === mainTorus || item.mesh === orbitRing) {
-          // Shift central knot to the center on mobile, right on desktop
-          item.basePos.x = isMobile ? 0 : 4;
-          item.basePos.y = isMobile ? 0.5 : 0;
-        } else if (item.mesh === icoA) {
-          item.basePos.x = isMobile ? 1.5 : 2;
-        } else if (item.mesh === icoB) {
-          item.basePos.x = isMobile ? -1.5 : -5;
-        } else if (item.mesh === tetra) {
-          item.basePos.x = isMobile ? -2.2 : -3.5;
-        } else if (item.mesh === octa) {
-          item.basePos.x = isMobile ? 2.2 : 5.5;
-        }
-      });
+      // Reframe objects for mobile viewports
+      hubs[0].mesh.position.set(isMobile ? -2.2 : -4, 1.5, -2);
+      hubs[1].mesh.position.set(isMobile ? 2.2 : 4.5, 0.8, 1);
+      hubs[2].mesh.position.set(0, isMobile ? 3 : 2.5, -5);
 
       if (prefersReducedMotion) {
         renderer.render(scene, camera);
       }
     };
     window.addEventListener('resize', handleResize);
-    
-    // Initial position framing call
     handleResize();
 
     // Cleanup
@@ -318,25 +252,22 @@ export default function PipelineScene() {
       observer.disconnect();
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('pointermove', handleMouseMove);
+      window.removeEventListener('scroll', handleScroll);
       mediaQuery.removeEventListener('change', handleMotionChange);
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
 
       // Dispose geometries & materials
-      torusKnotGeom.dispose();
-      icosaGeom.dispose();
-      tetraGeom.dispose();
-      octaGeom.dispose();
-      ringGeom.dispose();
-      gridGeometry.dispose();
-      gridMaterial.dispose();
+      terrainGeometry.dispose();
+      terrainMaterial.dispose();
+      nodeGeometry.dispose();
+      nodeMaterial.dispose();
+      hubGeom.dispose();
+      hubMat.dispose();
 
-      items.forEach((item) => {
-        item.mesh.geometry.dispose();
-        item.mesh.material.dispose();
-        // Dispose inner point elements
-        item.mesh.children.forEach(child => {
+      hubs.forEach(h => {
+        h.mesh.children.forEach(child => {
           if (child.geometry) child.geometry.dispose();
           if (child.material) child.material.dispose();
         });
@@ -359,6 +290,6 @@ export default function PipelineScene() {
   }
 
   return (
-    <div className="pipeline-canvas-wrap" ref={containerRef} aria-label="Interactive 3D floating wireframe nodes background" />
+    <div className="pipeline-canvas-wrap" ref={containerRef} aria-label="WebGL 3D dynamic volumetric terrain waves background" />
   );
 }

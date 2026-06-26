@@ -70,7 +70,13 @@ export default function Footer() {
             </a>
           </div>
         </div>
+
+        {/* Armory-style mega lowercase wordmark */}
+        <div className="mega-wordmark" aria-hidden="true">
+          dataflux
+        </div>
       </div>
     </footer>
+
   );
 }

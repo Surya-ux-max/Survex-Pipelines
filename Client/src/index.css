@@ -1032,3 +1032,63 @@ h1, h2, h3, h4, h5, h6 {
 .animate-fade-up-delay-1 { animation-delay: 0.1s; }
 .animate-fade-up-delay-2 { animation-delay: 0.2s; }
 .animate-fade-up-delay-3 { animation-delay: 0.3s; }
+
+/* ─────────────────────────────────────────────
+   ARMORY-STYLE CUSTOM GRID LAYOUTS
+───────────────────────────────────────────── */
+.global-grid-lines {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  pointer-events: none;
+  z-index: 1;
+}
+.global-grid-lines-col {
+  border-right: 1px solid rgba(23, 43, 54, 0.04);
+  height: 100%;
+}
+.global-grid-lines-col:last-child {
+  border-right: none;
+}
+
+/* Hairline border separators for landing sections */
+.section-hairline-top {
+  border-top: 1px solid rgba(23, 43, 54, 0.08);
+}
+.section-hairline-bottom {
+  border-bottom: 1px solid rgba(23, 43, 54, 0.08);
+}
+.dark-section-hairline {
+  border-top: 1px solid rgba(241, 246, 244, 0.08);
+  border-bottom: 1px solid rgba(241, 246, 244, 0.08);
+}
+
+/* Mega lowercase footer text */
+.mega-wordmark {
+  font-size: clamp(3rem, 15vw, 15rem);
+  font-weight: 800;
+  text-align: center;
+  color: rgba(241, 246, 244, 0.025);
+  letter-spacing: -0.05em;
+  line-height: 0.8;
+  user-select: none;
+  pointer-events: none;
+  text-transform: lowercase;
+  margin-top: 3rem;
+  font-family: var(--font-body);
+}
+
+/* Make cards look flat and technical with hairlines */
+.bento-card-inner {
+  border: 1px solid rgba(23, 43, 54, 0.06);
+  background-color: var(--arctic-powder);
+}
+.bento-card--xl .bento-card-inner {
+  background-color: var(--nocturnal-expedition);
+}
+.testimonial-card {
+  border: 1px solid rgba(23, 43, 54, 0.06);
+  background-color: var(--arctic-powder);
+}
+
