@@ -69,7 +69,7 @@ export default React.memo(function PricingCard({ plan, currency, billing, isUpda
         <span className="terminal-dot terminal-dot-red" />
         <span className="terminal-dot terminal-dot-yellow" />
         <span className="terminal-dot terminal-dot-green" />
-        <span className="terminal-filename">~/dataflux/plans/{plan.id.toLowerCase()}.conf</span>
+        <span className="terminal-filename">~/survex/plans/{plan.id.toLowerCase()}.conf</span>
       </div>
 
       <div className="pricing-card-body">

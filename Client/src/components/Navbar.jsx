@@ -20,7 +20,7 @@ export default function Navbar() {
     <header className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
       <div className="container navbar-inner">
         <a href="#" className="navbar-logo">
-          DATA<span>FLUX</span>
+          SURVE<span>X</span>
         </a>
 
         <nav aria-label="Main Navigation">

@@ -63,7 +63,7 @@ export default function Hero() {
             <em>Validate in flight.</em>
           </h1>
           <p className="hero-subheadline">
-            DataFlux orchestrates ingestion, validation, and real-time delivery with zero-trust schema enforcement. Direct failed records to dead-letter queues instantly.
+            Survex orchestrates ingestion, validation, and real-time delivery with zero-trust schema enforcement. Direct failed records to dead-letter queues instantly.
           </p>
 
           <div className="hero-counter-wrap">

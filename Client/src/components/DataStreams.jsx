@@ -1,61 +1,158 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 
-// Lazy load Beams so it does not block the initial paint/TTI
-const Beams = lazy(() => import('./Beams/Beams'));
+function GraphLoop() {
+  return (
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      height: '420px',
+      backgroundColor: '#172B36', // Oceanic Noir
+      borderRadius: '6px',
+      overflow: 'hidden',
+      border: '1px solid rgba(241, 246, 244, 0.08)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxSizing: 'border-box'
+    }}>
+      {/* SVG Interactive Loop of Graph */}
+      <svg viewBox="0 0 400 400" style={{ width: '90%', height: '90%', overflow: 'visible' }}>
+        <defs>
+          {/* Radial glow for nodes */}
+          <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FFC801" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#FFC801" stopOpacity="0" />
+          </radialGradient>
+          {/* Linear gradient for paths */}
+          <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#FFC801" />
+            <stop offset="100%" stopColor="#42fcff" />
+          </linearGradient>
+          {/* Glow filter */}
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+
+        {/* Circular main track loop */}
+        <circle cx="200" cy="200" r="120" fill="none" stroke="rgba(241, 246, 244, 0.06)" strokeWidth="4" />
+        <circle cx="200" cy="200" r="120" fill="none" stroke="url(#pathGradient)" strokeWidth="2" strokeDasharray="16 32" strokeDashoffset="0" style={{ animation: 'rotate-loop 20s linear infinite' }} />
+
+        {/* Dynamic flowing packet paths */}
+        <path id="loop-path" d="M 200 80 A 120 120 0 1 1 199.9 80" fill="none" stroke="transparent" />
+
+        {/* Glowing flow packets (circles moving along path) */}
+        <circle r="5" fill="#FFC801" filter="url(#glow)">
+          <animateMotion dur="7s" repeatCount="indefinite" path="M 200 80 A 120 120 0 1 1 199.9 80" />
+        </circle>
+        <circle r="4" fill="#42fcff" filter="url(#glow)">
+          <animateMotion dur="7s" begin="2.3s" repeatCount="indefinite" path="M 200 80 A 120 120 0 1 1 199.9 80" />
+        </circle>
+        <circle r="4.5" fill="#FF9932" filter="url(#glow)">
+          <animateMotion dur="7s" begin="4.6s" repeatCount="indefinite" path="M 200 80 A 120 120 0 1 1 199.9 80" />
+        </circle>
+
+        {/* Nodes around the loop */}
+        {/* Node 1: Ingest (Top) */}
+        <g transform="translate(200, 80)" style={{ cursor: 'pointer' }}>
+          <circle r="16" fill="rgba(23, 43, 54, 0.9)" stroke="#FFC801" strokeWidth="2" />
+          <circle r="6" fill="#FFC801" />
+          <text y="-24" textAnchor="middle" fill="#F1F6F4" fontFamily="JetBrains Mono" fontSize="9" fontWeight="bold">01_INGEST</text>
+        </g>
+
+        {/* Node 2: Validate */}
+        <g transform="translate(304, 140)" style={{ cursor: 'pointer' }}>
+          <circle r="16" fill="rgba(23, 43, 54, 0.9)" stroke="#42fcff" strokeWidth="2" />
+          <circle r="6" fill="#42fcff" />
+          <text x="24" y="4" textAnchor="start" fill="#F1F6F4" fontFamily="JetBrains Mono" fontSize="9" fontWeight="bold">02_VALIDATE</text>
+        </g>
+
+        {/* Node 3: Mask */}
+        <g transform="translate(304, 260)" style={{ cursor: 'pointer' }}>
+          <circle r="16" fill="rgba(23, 43, 54, 0.9)" stroke="rgba(241, 246, 244, 0.3)" strokeWidth="1.5" />
+          <circle r="5" fill="#F1F6F4" fillOpacity="0.4" />
+          <text x="24" y="4" textAnchor="start" fill="rgba(241, 246, 244, 0.6)" fontFamily="JetBrains Mono" fontSize="9">03_MASK</text>
+        </g>
+
+        {/* Node 4: Route */}
+        <g transform="translate(96, 260)" style={{ cursor: 'pointer' }}>
+          <circle r="16" fill="rgba(23, 43, 54, 0.9)" stroke="#FF9932" strokeWidth="2" />
+          <circle r="6" fill="#FF9932" />
+          <text x="-24" y="4" textAnchor="end" fill="#F1F6F4" fontFamily="JetBrains Mono" fontSize="9" fontWeight="bold">04_ROUTE</text>
+        </g>
+
+        {/* Node 5: Deliver */}
+        <g transform="translate(96, 140)" style={{ cursor: 'pointer' }}>
+          <circle r="16" fill="rgba(23, 43, 54, 0.9)" stroke="rgba(241, 246, 244, 0.3)" strokeWidth="1.5" />
+          <circle r="5" fill="#F1F6F4" fillOpacity="0.4" />
+          <text x="-24" y="4" textAnchor="end" fill="rgba(241, 246, 244, 0.6)" fontFamily="JetBrains Mono" fontSize="9">05_DELIVER</text>
+        </g>
+
+        {/* Central Terminal Display */}
+        <g transform="translate(200, 200)">
+          <circle r="52" fill="rgba(0,0,0,0.4)" stroke="rgba(241,246,244,0.06)" strokeWidth="1" />
+          <text y="-10" textAnchor="middle" fill="#FFC801" fontFamily="JetBrains Mono" fontSize="8" letterSpacing="0.05em">LOOP ACTIVE</text>
+          <text y="6" textAnchor="middle" fill="rgba(241,246,244,0.5)" fontFamily="JetBrains Mono" fontSize="7">148.2K p/s</text>
+          <text y="20" textAnchor="middle" fill="#42fcff" fontFamily="JetBrains Mono" fontSize="7" fontWeight="bold">LATENCY: 1.8ms</text>
+        </g>
+      </svg>
+
+      {/* Technical label overlay */}
+      <div style={{
+        position: 'absolute',
+        bottom: '1rem',
+        left: '1rem',
+        fontFamily: 'JetBrains Mono',
+        fontSize: '0.7rem',
+        color: '#FFC801',
+        letterSpacing: '0.05em',
+        backgroundColor: 'rgba(23, 43, 54, 0.85)',
+        padding: '0.35rem 0.65rem',
+        borderRadius: '2px',
+        pointerEvents: 'none',
+        border: '1px solid rgba(255, 200, 1, 0.15)'
+      }}>
+        SURVEX_NODE_LOOP // STATUS: TELEMETRY_OK
+      </div>
+    </div>
+  );
+}
 
 export default function DataStreams() {
   return (
-    <section className="features-section section-hairline-top section-hairline-bottom" id="pipeline" style={{ backgroundColor: '#F1F6F4', paddingBlock: 'clamp(4rem, 8vw, 6rem)' }}>
-      <div className="container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center' }}>
+    <section className="features-section section-hairline-top section-hairline-bottom" id="pipeline" style={{ backgroundColor: '#F1F6F4' }}>
+      <div className="container" style={{
+        display: 'flex',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: '3rem',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        boxSizing: 'border-box',
+        width: '100%'
+      }}>
         
-        {/* Left Column: 3D Shader Beams Visual (placed inside a premium container matching Screenshot 3) */}
+        {/* Left Column: Redesigned Interactive Loop of Graph */}
         <div style={{
-          position: 'relative',
-          height: '420px',
-          backgroundColor: '#172B36', // Oceanic Noir matching Beams canvas background
-          border: '1px solid rgba(23, 43, 54, 0.1)',
-          borderRadius: '6px',
-          overflow: 'hidden'
+          flex: '1 1 450px',
+          minWidth: '320px',
+          boxSizing: 'border-box',
+          position: 'relative'
         }}
-        className="animate-fade-up"
+        className="reveal reveal-left"
         >
-          <Suspense fallback={
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#F1F6F4', fontFamily: 'JetBrains Mono', fontSize: '0.8rem' }}>
-              Initializing Shader Grid...
-            </div>
-          }>
-            <Beams
-              beamWidth={2}
-              beamHeight={16}
-              beamNumber={10}
-              lightColor="#FFC801" // Forsythia beams
-              speed={1.5}
-              noiseIntensity={1.5}
-              scale={0.15}
-              rotation={45} // Tilt the beams system diagonally
-            />
-          </Suspense>
-
-          {/* Technical label overlay */}
-          <div style={{
-            position: 'absolute',
-            bottom: '1rem',
-            left: '1rem',
-            fontFamily: 'JetBrains Mono',
-            fontSize: '0.7rem',
-            color: '#FFC801',
-            letterSpacing: '0.05em',
-            backgroundColor: 'rgba(23, 43, 54, 0.75)',
-            padding: '0.35rem 0.65rem',
-            borderRadius: '2px',
-            pointerEvents: 'none'
-          }}>
-            BEAM_GRID_ACTIVE // STREAM_NODES: 10
-          </div>
+          <GraphLoop />
         </div>
 
-        {/* Right Column: Premium feature spec details matching Armory Screenshot 3 */}
-        <div className="animate-fade-up animate-fade-up-delay-1">
+        {/* Right Column: Premium feature spec details */}
+        <div style={{
+          flex: '1 1 450px',
+          minWidth: '320px',
+          boxSizing: 'border-box'
+        }}
+        className="reveal reveal-right"
+        >
           <div className="section-label">Operations telemetry</div>
           <h2 className="section-title" style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', marginBottom: '1.25rem' }}>
             Built for sustained pipeline load
@@ -81,6 +178,7 @@ export default function DataStreams() {
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <path d="m9 11 2 2 4-4"/>
                 </svg>
               </div>
               <div>
